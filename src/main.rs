@@ -6,17 +6,16 @@ use sha2::{Sha256, Digest};
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() != 3 {
-        eprintln!("Usage: hash [INPUT TYPE] [INPUT]");
-        return;
+    match args.len() {
+        2 => { handle_raw(&args[1]); },
+        3 => match args[1].as_str() {
+            "-r" | "--raw" => { handle_raw(&args[2]); },
+            "-f" | "--file" => { handle_file(&args[2]); },
+            _ => { eprintln!("Acceptable input types:\n\tRaw contents of next arg (-r, --raw)\n\tFrom file (-f, --file)"); }
+        }
+        _ => { eprintln!("Usage: hash <INPUT TYPE> [INPUT]"); }
     }
-
-    match args[1].as_str() {
-        "-f" | "--file" => { handle_file(&args[2]); },
-        "-r" | "--raw" => { handle_raw(&args[2]); },
-        _ => { eprintln!("Acceptable input types:\n\tRaw contents of next arg (-r, --raw)\n\tFrom file (-f, --file)"); }
-    }
-}
+}    
 
 fn handle_file(filename: &str) {
     match read_file(filename) {
