@@ -8,3 +8,4 @@ authors = ["Elie Hess"]
 
 [dependencies]
 sha2 = "0.9.6"
+hex = "0.4.3"

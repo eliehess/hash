@@ -1,6 +1,6 @@
 use std::env;
 use std::fs;
-use std::io::Read;
+use std::io::{self, Read};
 use sha2::{Sha256, Digest};
 
 fn main() {
@@ -28,7 +28,7 @@ fn handle_raw(input: &str) {
     println!("{}", hash(input));
 }
 
-fn read_file(filename: &str) -> std::io::Result<Vec<u8>> {
+fn read_file(filename: &str) -> io::Result<Vec<u8>> {
     let mut file = fs::File::open(filename)?;
     let mut buffer = Vec::new();
 
@@ -39,9 +39,5 @@ fn read_file(filename: &str) -> std::io::Result<Vec<u8>> {
 fn hash(input: impl AsRef<[u8]>) -> String {
     let mut hasher = Sha256::new();
     hasher.update(input);
-    return hasher
-        .finalize()
-        .into_iter()
-        .map(|x| if x < 16 { format!("0{:x}", x) } else { format!("{:x}", x) })
-        .collect();
+    return hex::encode(hasher.finalize());
 }
