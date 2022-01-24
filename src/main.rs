@@ -4,53 +4,56 @@ use hash::{Hasher, Sha256, Sha512};
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    enum InputType { Raw, File }
+    enum InputType { Raw(String), File(String) }
 
     let mut input_type: Option<InputType> = Option::None;
     let mut hasher: Option<Box<dyn Hasher>> = Option::None;
-    let mut input: Option<String> = Option::None;
 
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
             "-r" | "--raw" => {
                 match input_type {
-                    Some(_) => panic!("Must specify -r/--raw or -f/--file only once"),
+                    Some(_) => panic!("Can only specify -r/--raw or -f/--file once"),
                     None => {
-                        input_type = Some(InputType::Raw);
-                        input = Some((&args[i+1]).to_string());
                         i += 1;
+                        if i == args.len() { 
+                            panic!("Must provide an argument after -r/--raw") 
+                        }
+                        input_type = Some(InputType::Raw(args[i].to_string()));
                     }
                 }
             },
             "-f" | "--file" => {
                 match input_type {
-                    Some(_) => panic!("Must specify -r/--raw or -f/--file only once"),
+                    Some(_) => panic!("Can only specify -r/--raw or -f/--file once"),
                     None => {
-                        input_type = Some(InputType::File);
-                        input = Some((&args[i+1]).to_string());
                         i += 1;
+                        if i == args.len() { 
+                            panic!("Must provide an argument after -f/--file") 
+                        }
+                        input_type = Some(InputType::File(args[i].to_string()));
                     }
                 }
             },
-            "-t" | "--type" => match hasher {
-                Some(_) => panic!("Hash type entered twice"),
+            "-a" | "--algorithm" => match hasher {
+                Some(_) => panic!("Hash algorithm entered twice"),
                 None => { 
-                    hasher = match args[i+1].as_str() {
+                    i += 1;
+                    if i == args.len() { 
+                        panic!("Must provide an argument after -a/--algorithm") 
+                    }
+                    hasher = match args[i].as_str() {
                         "256" | "sha256" => { Some(Box::new(Sha256)) },
                         "512" | "sha512" => { Some(Box::new(Sha512)) },
-                        _ => { panic!("Acceptable hash types: sha256, sha512"); }
+                        _ => { panic!("Supported hash algorithms:\n\tSHA-256 (sha256, 256),\n\tSHA-512 (sha512, 512)"); }
                     };
-                    i += 1;
                 },
             },
             _ => {
                 match input_type {
                     Some(_) => panic!("Unrecognized argument: {}", args[i]),
-                    None => {
-                        input_type = Some(InputType::Raw);
-                        input = Some((&args[i]).to_string());
-                    }
+                    None => { input_type = Some(InputType::Raw(args[i].to_string())); }
                 }
             }  
         }
@@ -58,19 +61,12 @@ fn main() {
         i += 1;
     }
 
-    let input_type: InputType = input_type.unwrap_or_else(|| panic!("No input type specified"));
-    let input: String = input.unwrap_or_else(|| panic!("No input specified"));
-    let hasher: Box<dyn Hasher> = hasher.unwrap_or(Box::new(Sha256));
-
-    let text: Vec<u8> = match input_type {
-        InputType::Raw => input.as_bytes().to_vec(),
-        InputType::File => match read_file(&input) {
-            Ok(contents) => contents,
-            Err(e) => panic!("Error reading file: {}", e)
-        }
+    let text: Vec<u8> = match input_type.expect("No input type specified") {
+        InputType::Raw(input) => input.as_bytes().to_vec(),
+        InputType::File(input) => read_file(&input).expect("Unable to read file")
     };
 
-    println!("{}", hasher.hash(text));
+    println!("{}", hasher.unwrap_or(Box::new(Sha256)).hash(text));
 }
 
 fn read_file(filename: &str) -> io::Result<Vec<u8>> {

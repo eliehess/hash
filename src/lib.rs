@@ -10,7 +10,7 @@ impl Hasher for Sha256 {
     fn hash(&self, input: Vec<u8>) -> String {
         let mut hasher = sha2::Sha256::new();
         hasher.update(input);
-        return hex::encode(hasher.finalize());
+        hex::encode(hasher.finalize())
     }
 }
 
@@ -20,6 +20,6 @@ impl Hasher for Sha512 {
     fn hash(&self, input: Vec<u8>) -> String {
         let mut hasher = sha2::Sha512::new();
         hasher.update(input);
-        return hex::encode(hasher.finalize());
+        hex::encode(hasher.finalize())
     }
 }
