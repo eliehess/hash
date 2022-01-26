@@ -1,25 +1,53 @@
-use sha2::Digest;
-
 pub trait Hasher {
     fn hash(&self, input: Vec<u8>) -> String;
 }
 
-pub struct Sha256;
+pub mod sha2 {
+    use super::Hasher;
+    use ::sha2::Digest;
 
-impl Hasher for Sha256 {
-    fn hash(&self, input: Vec<u8>) -> String {
-        let mut hasher = sha2::Sha256::new();
-        hasher.update(input);
-        hex::encode(hasher.finalize())
+    pub struct Sha256;
+    
+    impl Hasher for Sha256 {
+        fn hash(&self, input: Vec<u8>) -> String {
+            let mut hasher = ::sha2::Sha256::new();
+            hasher.update(input);
+            hex::encode(hasher.finalize())
+        }
+    }
+    
+    pub struct Sha512;
+    
+    impl Hasher for Sha512 {
+        fn hash(&self, input: Vec<u8>) -> String {
+            let mut hasher = ::sha2::Sha512::new();
+            hasher.update(input);
+            hex::encode(hasher.finalize())
+        }
     }
 }
 
-pub struct Sha512;
+pub mod sha3 {
+    use super::Hasher;
+    use ::sha3::Digest;
 
-impl Hasher for Sha512 {
-    fn hash(&self, input: Vec<u8>) -> String {
-        let mut hasher = sha2::Sha512::new();
-        hasher.update(input);
-        hex::encode(hasher.finalize())
+    pub struct Sha3_256;
+
+    impl Hasher for Sha3_256 {
+        fn hash(&self, input: Vec<u8>) -> String {
+            let mut hasher = ::sha3::Sha3_256::new();
+            hasher.update(input);
+            hex::encode(hasher.finalize())
+        }
+    }
+
+    pub struct Sha3_512;
+
+    impl Hasher for Sha3_512 {
+        fn hash(&self, input: Vec<u8>) -> String {
+            let mut hasher = ::sha3::Sha3_512::new();
+            hasher.update(input);
+            hex::encode(hasher.finalize())
+        }
     }
 }

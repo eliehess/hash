@@ -1,5 +1,8 @@
 use std::{env, fs, io::{self, Read}};
-use hash::{Hasher, Sha256, Sha512};
+use hash::{Hasher, 
+    sha2::{Sha256, Sha512},
+    sha3::{Sha3_256, Sha3_512}
+};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -44,9 +47,15 @@ fn main() {
                         panic!("Must provide an argument after -a/--algorithm") 
                     }
                     hasher = match args[i].as_str() {
-                        "256" | "sha256" => { Some(Box::new(Sha256)) },
-                        "512" | "sha512" => { Some(Box::new(Sha512)) },
-                        _ => { panic!("Supported hash algorithms:\n\tSHA-256 (sha256, 256),\n\tSHA-512 (sha512, 512)"); }
+                        "256" | "sha256" | "sha2-256" => { Some(Box::new(Sha256)) },
+                        "512" | "sha512" | "sha2-512" => { Some(Box::new(Sha512)) },
+                        "sha3-256" => { Some(Box::new(Sha3_256)) },
+                        "sha3-512" => { Some(Box::new(Sha3_512)) },
+                        _ => { panic!("Supported hash algorithms:\n\
+                            \tSHA-256 (sha2-256, sha256, 256) *DEFAULT*,\n\
+                            \tSHA-512 (sha2-512, sha512, 512),\n\
+                            \tSHA3-256 (sha3-256),\n\
+                            \tSHA3-512 (sha3-512)"); }
                     };
                 },
             },
@@ -66,7 +75,9 @@ fn main() {
         InputType::File(input) => read_file(&input).expect("Unable to read file")
     };
 
-    println!("{}", hasher.unwrap_or(Box::new(Sha256)).hash(text));
+    let result: String = hasher.unwrap_or_else(|| Box::new(Sha256)).hash(text);
+
+    println!("{}", result);
 }
 
 fn read_file(filename: &str) -> io::Result<Vec<u8>> {
