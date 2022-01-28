@@ -1,8 +1,8 @@
 use std::{env, fs, io::{self, Read}};
-use hash::{Hasher, 
-    sha2::{Sha256, Sha512},
-    sha3::{Sha3_256, Sha3_512},
-    md5::MD5
+use hash::{
+    sha2::{sha256, sha512},
+    sha3::{sha3_256, sha3_512},
+    md5::md5
 };
 
 fn main() {
@@ -11,7 +11,7 @@ fn main() {
     enum InputType { Raw(String), File(String) }
 
     let mut input_type: Option<InputType> = Option::None;
-    let mut hasher: Option<Box<dyn Hasher>> = Option::None;
+    let mut hash_function: Option<&dyn Fn(Vec<u8>) -> String> = Option::None;
 
     let mut i = 1;
     while i < args.len() {
@@ -40,19 +40,19 @@ fn main() {
                     }
                 }
             },
-            "-a" | "--algorithm" => match hasher {
+            "-a" | "--algorithm" => match hash_function {
                 Some(_) => panic!("Hash algorithm entered twice"),
                 None => { 
                     i += 1;
                     if i == args.len() { 
                         panic!("Must provide an argument after -a/--algorithm") 
                     }
-                    hasher = match args[i].as_str() {
-                        "256" | "sha256" | "sha2-256" => { Some(Box::new(Sha256)) },
-                        "512" | "sha512" | "sha2-512" => { Some(Box::new(Sha512)) },
-                        "sha3-256" => { Some(Box::new(Sha3_256)) },
-                        "sha3-512" => { Some(Box::new(Sha3_512)) },
-                        "md5" => { Some(Box::new(MD5)) },
+                    hash_function = match args[i].as_str() {
+                        "256" | "sha256" | "sha2-256" => { Some(&sha256) },
+                        "512" | "sha512" | "sha2-512" => { Some(&sha512) },
+                        "sha3-256" => { Some(&sha3_256) },
+                        "sha3-512" => { Some(&sha3_512) },
+                        "md5" => { Some(&md5) },
                         _ => { panic!("Supported hash algorithms:\n\
                             \tSHA-256 (sha2-256, sha256, 256) *DEFAULT*,\n\
                             \tSHA-512 (sha2-512, sha512, 512),\n\
@@ -78,9 +78,7 @@ fn main() {
         InputType::File(input) => read_file(&input).expect("Unable to read file")
     };
 
-    let result: String = hasher.unwrap_or_else(|| Box::new(Sha256)).hash(text);
-
-    println!("{}", result);
+    println!("{}", hash_function.unwrap_or(&sha256)(text));
 }
 
 fn read_file(filename: &str) -> io::Result<Vec<u8>> {
