@@ -12,7 +12,7 @@ pub mod sha2 {
         fn hash(&self, input: Vec<u8>) -> String {
             let mut hasher = ::sha2::Sha256::new();
             hasher.update(input);
-            hex::encode(hasher.finalize())
+            format!("{:x}", hasher.finalize())
         }
     }
     
@@ -22,7 +22,7 @@ pub mod sha2 {
         fn hash(&self, input: Vec<u8>) -> String {
             let mut hasher = ::sha2::Sha512::new();
             hasher.update(input);
-            hex::encode(hasher.finalize())
+            format!("{:x}", hasher.finalize())
         }
     }
 }
@@ -37,7 +37,7 @@ pub mod sha3 {
         fn hash(&self, input: Vec<u8>) -> String {
             let mut hasher = ::sha3::Sha3_256::new();
             hasher.update(input);
-            hex::encode(hasher.finalize())
+            format!("{:x}", hasher.finalize())
         }
     }
 
@@ -47,7 +47,7 @@ pub mod sha3 {
         fn hash(&self, input: Vec<u8>) -> String {
             let mut hasher = ::sha3::Sha3_512::new();
             hasher.update(input);
-            hex::encode(hasher.finalize())
+            format!("{:x}", hasher.finalize())
         }
     }
 }
