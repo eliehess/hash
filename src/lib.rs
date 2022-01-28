@@ -51,3 +51,15 @@ pub mod sha3 {
         }
     }
 }
+
+pub mod md5 {
+    use super::Hasher;
+
+    pub struct MD5;
+
+    impl Hasher for MD5 {
+        fn hash(&self, input: Vec<u8>) -> String {
+            format!("{:x}", ::md5::compute(input))
+        }
+    }
+}

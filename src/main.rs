@@ -1,7 +1,8 @@
 use std::{env, fs, io::{self, Read}};
 use hash::{Hasher, 
     sha2::{Sha256, Sha512},
-    sha3::{Sha3_256, Sha3_512}
+    sha3::{Sha3_256, Sha3_512},
+    md5::MD5
 };
 
 fn main() {
@@ -51,11 +52,13 @@ fn main() {
                         "512" | "sha512" | "sha2-512" => { Some(Box::new(Sha512)) },
                         "sha3-256" => { Some(Box::new(Sha3_256)) },
                         "sha3-512" => { Some(Box::new(Sha3_512)) },
+                        "md5" => { Some(Box::new(MD5)) },
                         _ => { panic!("Supported hash algorithms:\n\
                             \tSHA-256 (sha2-256, sha256, 256) *DEFAULT*,\n\
                             \tSHA-512 (sha2-512, sha512, 512),\n\
                             \tSHA3-256 (sha3-256),\n\
-                            \tSHA3-512 (sha3-512)"); }
+                            \tSHA3-512 (sha3-512)\n\
+                            \tMD5 (md5)"); }
                     };
                 },
             },
