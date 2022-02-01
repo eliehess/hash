@@ -1,3 +1,13 @@
+pub mod sha1 {
+    use ::sha1::Digest;
+
+    pub fn sha1(input: Vec<u8>) -> String {
+        let mut hasher = ::sha1::Sha1::new();
+        hasher.update(input);
+        format!("{:x}", hasher.finalize())
+    }
+}
+
 pub mod sha2 {
     use ::sha2::Digest;
 
