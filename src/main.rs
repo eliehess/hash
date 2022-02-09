@@ -6,18 +6,22 @@ use hash::{
     md5::md5
 };
 
-macro_rules! exit {
-    ($($x:expr),*) => {{
-        println!($($x),*);
-        std::process::exit(0);
-    }};
-}
+enum InputType { Raw(String), File(String) }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    match process_args(env::args().collect()) {
+        Err(e) => println!("{}", e),
+        Ok(tuple) => {
+            let (input_type, hash_function) = tuple;
+            match get_text(input_type) {
+                Err(e) => println!("{}", e),
+                Ok(text) => println!("{}", hash_function(text))
+            }
+        }
+    }
+}
 
-    enum InputType { Raw(String), File(String) }
-
+fn process_args(args: Vec<String>) -> Result<(InputType, impl Fn(Vec<u8>) -> String), String> {
     let mut input_type: Option<InputType> = Option::None;
     let mut hash_function: Option<&dyn Fn(Vec<u8>) -> String> = Option::None;
 
@@ -26,11 +30,11 @@ fn main() {
         match args[i].as_str() {
             "-r" | "--raw" => {
                 match input_type {
-                    Some(_) => exit!("Can only specify -r/--raw or -f/--file once. Run hash --help for help"),
+                    Some(_) => return Err("Can only specify -r/--raw or -f/--file once. Run hash --help for help".to_string()),
                     None => {
                         i += 1;
                         if i == args.len() { 
-                            exit!("Must provide an argument after -r/--raw. Run hash --help for help") 
+                            return Err("Must provide an argument after -r/--raw. Run hash --help for help".to_string()) 
                         }
                         input_type = Some(InputType::Raw(args[i].to_string()));
                     }
@@ -38,22 +42,22 @@ fn main() {
             },
             "-f" | "--file" => {
                 match input_type {
-                    Some(_) => exit!("Can only specify -r/--raw or -f/--file once. Run hash --help for help"),
+                    Some(_) => return Err("Can only specify -r/--raw or -f/--file once. Run hash --help for help".to_string()),
                     None => {
                         i += 1;
                         if i == args.len() { 
-                            exit!("Must provide an argument after -f/--file. Run hash --help for help") 
+                            return Err("Must provide an argument after -f/--file. Run hash --help for help".to_string()) 
                         }
                         input_type = Some(InputType::File(args[i].to_string()));
                     }
                 }
             },
             "-a" | "--algorithm" => match hash_function {
-                Some(_) => exit!("Hash algorithm entered twice. Run hash --help for help"),
+                Some(_) => return Err("Hash algorithm entered twice. Run hash --help for help".to_string()),
                 None => { 
                     i += 1;
                     if i == args.len() { 
-                        exit!("Must provide an argument after -a/--algorithm Run hash --help for help") 
+                        return Err("Must provide an argument after -a/--algorithm Run hash --help for help".to_string()) 
                     }
                     hash_function = match args[i].as_str() {
                         "md5" => { Some(&md5) },
@@ -62,12 +66,12 @@ fn main() {
                         "sha2-512" | "sha512" | "512" => { Some(&sha512) },
                         "sha3-256" => { Some(&sha3_256) },
                         "sha3-512" => { Some(&sha3_512) },
-                        _ => { exit!("Unrecognized algorithm {}. Run hash --help for help", args[i]); }
+                        _ => { return Err(format!("Unrecognized algorithm {}. Run hash --help for help", args[i])); }
                     };
                 },
             },
             "-h" | "--help" => 
-                exit!("Usage: hash <options> \n\
+            return Err("Usage: hash <options> \n\
                     \t-h | --help:\t\tdisplays this message.\n\n\
                     \t-r | --raw:\t\ttreat the next argument as raw text to be hashed. Cannot be used alongside -f/--file.\n\
                     \t-f | --file:\t\ttreat the next argument as a path to a file to be hashed. Cannot be used alongside -r/--raw.\n\
@@ -78,10 +82,10 @@ fn main() {
                             \t\tSHA2-256 (sha2-256, sha256, 256) *DEFAULT*,\n\
                             \t\tSHA2-512 (sha2-512, sha512, 512),\n\
                             \t\tSHA3-256 (sha3-256),\n\
-                            \t\tSHA3-512 (sha3-512)"),
+                            \t\tSHA3-512 (sha3-512)".to_string()),
             _ => {
                 match input_type {
-                    Some(_) => exit!("Unrecognized argument: {}. Run hash --help for help", args[i]),
+                    Some(_) => return Err(format!("Unrecognized argument: {}. Run hash --help for help", args[i])),
                     None => { input_type = Some(InputType::Raw(args[i].to_string())); }
                 }
             }  
@@ -90,15 +94,20 @@ fn main() {
         i += 1;
     }
 
-    let text: Vec<u8> = match input_type.unwrap_or_else(|| exit!("Didn't find anything to hash. Run hash --help for help")) {
-        InputType::Raw(input) => input.as_bytes().to_vec(),
-        InputType::File(input) => match read_file(&input) {
-            Ok(text) => text,
-            Err(e) => { exit!("Unable to read file: {}", e) }
-        }
-    };
+    match input_type {
+        None => Err("Didn't find anything to hash. Run hash --help for help".to_string()),
+        Some(input_type) => Ok((input_type, hash_function.unwrap_or(&sha256)))
+    }
+}
 
-    println!("{}", hash_function.unwrap_or(&sha256)(text));
+fn get_text(input_type: InputType) -> Result<Vec<u8>, String> {
+    match input_type {
+        InputType::Raw(input) => Ok(input.as_bytes().to_vec()),
+        InputType::File(input) => match read_file(&input) {
+            Ok(text) => Ok(text),
+            Err(e) => { Err(format!("Unable to read file: {}", e)) }
+        }
+    }
 }
 
 fn read_file(filename: &str) -> io::Result<Vec<u8>> {
