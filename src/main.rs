@@ -1,9 +1,11 @@
 use std::{env, fs, io::{self, Read}};
 use hash::{
+    md5::md5,
     sha1::sha1,
     sha2::{sha256, sha512},
     sha3::{sha3_256, sha3_512},
-    md5::md5
+    tiger::tiger,
+    whirlpool::whirlpool
 };
 
 enum InputType { Raw(String), File(String) }
@@ -59,15 +61,17 @@ fn process_args(args: Vec<String>) -> Result<(InputType, impl Fn(Vec<u8>) -> Str
                     if i == args.len() { 
                         return Err("Must provide an argument after -a/--algorithm Run hash --help for help".to_string()) 
                     }
-                    hash_function = match args[i].as_str() {
-                        "md5" => { Some(&md5) },
-                        "sha1" => { Some(&sha1) },
-                        "sha2-256" | "sha256" | "256" => { Some(&sha256) },
-                        "sha2-512" | "sha512" | "512" => { Some(&sha512) },
-                        "sha3-256" => { Some(&sha3_256) },
-                        "sha3-512" => { Some(&sha3_512) },
+                    hash_function = Some(match args[i].as_str() {
+                        "md5" => &md5,
+                        "sha1" => &sha1,
+                        "sha2-256" | "sha256" | "256" => &sha256,
+                        "sha2-512" | "sha512" | "512" => &sha512,
+                        "sha3-256" => &sha3_256,
+                        "sha3-512" => &sha3_512,
+                        "tiger" => &tiger,
+                        "whirlpool" => &whirlpool,
                         _ => { return Err(format!("Unrecognized algorithm {}. Run hash --help for help", args[i])); }
-                    };
+                    });
                 },
             },
             "-h" | "--help" => 
@@ -82,7 +86,9 @@ fn process_args(args: Vec<String>) -> Result<(InputType, impl Fn(Vec<u8>) -> Str
                             \t\tSHA2-256 (sha2-256, sha256, 256) *DEFAULT*,\n\
                             \t\tSHA2-512 (sha2-512, sha512, 512),\n\
                             \t\tSHA3-256 (sha3-256),\n\
-                            \t\tSHA3-512 (sha3-512)".to_string()),
+                            \t\tSHA3-512 (sha3-512),\n\
+                            \t\tTiger (tiger),\n\
+                            \t\tWhirlpool (whirlpool)".to_string()),
             _ => {
                 match input_type {
                     Some(_) => return Err(format!("Unrecognized argument: {}. Run hash --help for help", args[i])),

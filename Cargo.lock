@@ -82,6 +82,8 @@ dependencies = [
  "sha1",
  "sha2",
  "sha3",
+ "tiger",
+ "whirlpool",
 ]
 
 [[package]]
@@ -143,6 +145,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiger"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76474c837ed2c39b5d499e1eb038b8f781ed76a6d7eb7fc80415241e33f73f33"
+dependencies = [
+ "digest 0.10.1",
+]
+
+[[package]]
 name = "typenum"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -153,3 +164,12 @@ name = "version_check"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
+
+[[package]]
+name = "whirlpool"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e163a450f6eaeaf9c24146d4249ff33cc80d7f6aaf0f9ec8cbe7810ce402e6a"
+dependencies = [
+ "digest 0.10.1",
+]
