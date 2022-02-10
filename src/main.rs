@@ -1,4 +1,4 @@
-use std::{env, fs, io::{self, Read}};
+use std::{env, fs, collections::VecDeque, io::{self, Read}};
 use hash::{
     md5::md5,
     sha1::sha1,
@@ -23,22 +23,23 @@ fn main() {
     }
 }
 
-fn process_args(args: Vec<String>) -> Result<(InputType, impl Fn(Vec<u8>) -> String), String> {
+fn process_args(mut args: VecDeque<String>) -> Result<(InputType, impl Fn(Vec<u8>) -> String), String> {
     let mut input_type: Option<InputType> = Option::None;
+    let mut backup_input: Option<String> = Option::None;
     let mut hash_function: Option<&dyn Fn(Vec<u8>) -> String> = Option::None;
 
-    let mut i = 1;
-    while i < args.len() {
-        match args[i].as_str() {
+    args.pop_front();
+    while let Some(mut arg) = args.pop_front() {
+        match arg.as_str() {
             "-r" | "--raw" => {
                 match input_type {
                     Some(_) => return Err("Can only specify -r/--raw or -f/--file once. Run hash --help for help".to_string()),
                     None => {
-                        i += 1;
-                        if i == args.len() { 
-                            return Err("Must provide an argument after -r/--raw. Run hash --help for help".to_string()) 
-                        }
-                        input_type = Some(InputType::Raw(args[i].to_string()));
+                        arg = match args.pop_front() {
+                            None => return Err("Must provide an argument after -r/--raw. Run hash --help for help".to_string()),
+                            Some(x) => x
+                        };
+                        input_type = Some(InputType::Raw(arg));
                     }
                 }
             },
@@ -46,22 +47,22 @@ fn process_args(args: Vec<String>) -> Result<(InputType, impl Fn(Vec<u8>) -> Str
                 match input_type {
                     Some(_) => return Err("Can only specify -r/--raw or -f/--file once. Run hash --help for help".to_string()),
                     None => {
-                        i += 1;
-                        if i == args.len() { 
-                            return Err("Must provide an argument after -f/--file. Run hash --help for help".to_string()) 
-                        }
-                        input_type = Some(InputType::File(args[i].to_string()));
+                        arg = match args.pop_front() {
+                            None => return Err("Must provide an argument after -f/--file. Run hash --help for help".to_string()),
+                            Some(x) => x
+                        };
+                        input_type = Some(InputType::File(arg));
                     }
                 }
             },
             "-a" | "--algorithm" => match hash_function {
                 Some(_) => return Err("Hash algorithm entered twice. Run hash --help for help".to_string()),
                 None => { 
-                    i += 1;
-                    if i == args.len() { 
-                        return Err("Must provide an argument after -a/--algorithm Run hash --help for help".to_string()) 
-                    }
-                    hash_function = Some(match args[i].as_str() {
+                    arg = match args.pop_front() {
+                        None => return Err("Must provide an argument after -a/--algorithm. Run hash --help for help".to_string()),
+                        Some(x) => x
+                    };
+                    hash_function = Some(match arg.as_str() {
                         "md5" => &md5,
                         "sha1" => &sha1,
                         "sha2-256" | "sha256" | "256" => &sha256,
@@ -70,17 +71,17 @@ fn process_args(args: Vec<String>) -> Result<(InputType, impl Fn(Vec<u8>) -> Str
                         "sha3-512" => &sha3_512,
                         "tiger" => &tiger,
                         "whirlpool" => &whirlpool,
-                        _ => { return Err(format!("Unrecognized algorithm {}. Run hash --help for help", args[i])); }
+                        _ => { return Err(format!("Unrecognized algorithm \"{}\". Run hash --help for help", arg)); }
                     });
                 },
             },
             "-h" | "--help" => 
-            return Err("Usage: hash <options> \n\
+                return Err("Usage: hash <options> \n\
                     \t-h | --help:\t\tdisplays this message.\n\n\
-                    \t-r | --raw:\t\ttreat the next argument as raw text to be hashed. Cannot be used alongside -f/--file.\n\
-                    \t-f | --file:\t\ttreat the next argument as a path to a file to be hashed. Cannot be used alongside -r/--raw.\n\
+                    \t-r <input> | --raw <input>:\t\thash the specified raw input. Cannot be used alongside -f/--file.\n\
+                    \t-f <filename> | --file <filename>:\t\thash the specified file. Cannot be used alongside -r/--raw.\n\
                         \t\tIf neither -r/--raw or -f/--file are specified, treats the first otherwise-unrecognized argument as raw text to be hashed.\n\n\
-                    \t-a | --algorithm:\ttreat the next argument as the hashing algorithm to be used. Defaults to SHA2-256 if not specified. Supported hash algorithms:\n\
+                    \t-a <alg> | --algorithm <alg>:\tuse the specified hash algorithm. Defaults to SHA2-256 if not specified. Supported hash algorithms:\n\
                             \t\tMD5 (md5)\n\
                             \t\tSHA-1 (sha1),\n\
                             \t\tSHA2-256 (sha2-256, sha256, 256) *DEFAULT*,\n\
@@ -90,19 +91,23 @@ fn process_args(args: Vec<String>) -> Result<(InputType, impl Fn(Vec<u8>) -> Str
                             \t\tTiger (tiger),\n\
                             \t\tWhirlpool (whirlpool)".to_string()),
             _ => {
-                match input_type {
-                    Some(_) => return Err(format!("Unrecognized argument: {}. Run hash --help for help", args[i])),
-                    None => { input_type = Some(InputType::Raw(args[i].to_string())); }
+                match backup_input {
+                    Some(_) => return Err(format!("Unrecognized argument \"{}\". Run hash --help for help", arg)),
+                    None => { backup_input = Some(arg); }
                 }
-            }  
+            }
         }
-
-        i += 1;
     }
 
     match input_type {
-        None => Err("Didn't find anything to hash. Run hash --help for help".to_string()),
-        Some(input_type) => Ok((input_type, hash_function.unwrap_or(&sha256)))
+        None => match backup_input {
+            None => Err("Didn't find anything to hash. Run hash --help for help".to_string()),
+            Some(backup) => Ok((InputType::Raw(backup), hash_function.unwrap_or(&sha256)))
+        },
+        Some(input_type) => match backup_input {
+            None => Ok((input_type, hash_function.unwrap_or(&sha256))),
+            Some(backup) => Err(format!("Unrecognized argument \"{}\". Run hash --help for help", backup))
+        }
     }
 }
 
